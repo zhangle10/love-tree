@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Ma Shan Zheng', 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            position: relative;
+        }
+        
+        .sun {
+            position: absolute;
+            top: 10%;
+            right: 15%;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #FFEB3B, #FFC107);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(255, 235, 59, 0.7);
+            z-index: 1;
+        }
+        
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            z-index: 1;
+            opacity: 0.7;
+        }
+        
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+        }
+        
+        .name-display {
+            position: absolute;
+            bottom: 25%;
+            z-index: 10;
+            font-size: 4.5rem;
+            font-weight: bold;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.8);
+            background: linear-gradient(45deg, #FF69B4, #FFB6C1, #FFC0CB);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 300% 300%;
+            animation: gradientShift 8s ease infinite;
+            letter-spacing: 3px;
+        }
+        
+        .title {
+            position: absolute;
+            top: 10%;
+            z-index: 10;
+            text-align: center;
+            animation: fadeIn 2s ease-out;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 15px rgba(255, 105, 180, 0.7);
+            background: linear-gradient(45deg, #FF69B4, #FFB6C1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.8rem;
+            opacity: 0.9;
+            max-width: 800px;
+            line-height: 1.8;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .footer {
+            position: absolute;
+            bottom: 5%;
+            z-index: 10;
+            font-size: 1.2rem;
+            opacity: 0.8;
+            text-align: center;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        @media (max-width: 768px) {
+            .name-display { font-size: 3rem; bottom: 20%; }
+            h1 { font-size: 2.5rem; }
+            .subtitle { font-size: 1.4rem; padding: 0 20px; }
+            .sun { width: 80px; height: 80px; right: 10%; }
+        }
+        
+        .share-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 12px 18px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        .share-hint span {
+            margin-left: 10px;
+        }
+        
+        .name-config-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+            font-size: 0.9rem;
+            z-index: 10;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sun"></div>
+ 
+        <div class="title">
+            <p class="subtitle">小树苗正在生长中，每一片叶子都代表一份心意...</p>
+        </div>
+        
+        <div class="name-display" id="nameDisplay"></div>
+        
+        <canvas id="treeCanvas"></canvas>
+        
+        <div class="footer">
+        </div>
+    </div>
+    
+    <script>
+        // ===== 配置区域 =====
+        // 在此处修改您想显示的名字
+        const config = {
+            personName: "阿陈", // 在此处更改显示的人名
+            growthDuration: 5800 // 生长动画时长(毫秒)
+        };
+        
+        // ===== 核心代码 =====
+        const canvas = document.getElementById('treeCanvas');
+        const ctx = canvas.getContext('2d');
+        const nameDisplay = document.getElementById('nameDisplay');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        let hearts = [];
+        let branches = [];
+        let animationStartTime;
+        let treeBaseX = canvas.width / 2;
+        let treeBaseY = canvas.height;
+        let animationCompleted = false;
+        
+        class Branch {
+            constructor(startX, startY, endX, endY, width, depth) {
+                this.startX = startX;
+                this.startY = startY;
+                this.endX = endX;
+                this.endY = endY;
+                this.width = width;
+                this.depth = depth;
+                this.growthProgress = 0;
+                this.growthSpeed = 0.8 + Math.random() * 0.5;
+                this.hasHeart = depth > 3 && Math.random() > 0.4;
+            }
+            
+            grow(progress) {
+                this.growthProgress = Math.min(progress * 1.5, 1);
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.startX, this.startY);
+                
+                const currentX = this.startX + (this.endX - this.startX) * this.growthProgress;
+                const currentY = this.startY + (this.endY - this.startY) * this.growthProgress;
+                
+                ctx.lineTo(currentX, currentY);
+                ctx.lineWidth = this.width;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = `rgba(101, 67, 33, ${0.9 - this.depth * 0.1})`;
+                ctx.stroke();
+                
+                if (this.growthProgress >= 1 && this.hasHeart) {
+                    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400 + this.depth);
+                    const size = this.depth > 5 ? 25 : (this.depth > 3 ? 18 : 12);
+                    const hue = 330 + pulse * 15;
+                    const alpha = this.depth > 5 ? 0.9 : (this.depth > 3 ? 0.8 : 0.7);
+                    
+                    drawHeart(ctx, currentX, currentY, size, `hsla(${hue}, 100%, 70%, ${alpha})`);
+                    
+                    if (Math.random() > 0.7) {
+                        hearts.push(new HeartParticle(currentX, currentY, size * 0.6));
+                    }
+                }
+                
+                return {x: currentX, y: currentY};
+            }
+        }
+        
+        class HeartParticle {
+            constructor(x, y, baseSize) {
+                this.x = x;
+                this.y = y;
+                this.size = (baseSize || 10) * (0.7 + Math.random() * 0.6);
+                this.speedX = -0.5 + Math.random() * 1;
+                this.speedY = -0.5 - Math.random() * 0.5;
+                this.alpha = 0.7 + Math.random() * 0.3;
+                this.decay = 0.005;
+                this.color = `hsla(${330 + Math.random() * 20}, 100%, 75%, ${this.alpha})`;
+            }
+            
+            update() {
+                this.x += this.speedX * 0.5;
+                this.y += this.speedY * 0.5;
+                this.alpha -= this.decay;
+                return this.alpha > 0;
+            }
+            
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                drawHeart(ctx, this.x, this.y, this.size, this.color);
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        function drawHeart(ctx, x, y, size, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            ctx.beginPath();
+            const topCurveHeight = size * 0.3;
+            ctx.moveTo(0, -size/2);
+            
+            ctx.bezierCurveTo(
+                -size/2, -size/2,
+                -size/2, size/3,
+                0, size/2
+            );
+            
+            ctx.bezierCurveTo(
+                size/2, size/3,
+                size/2, -size/2,
+                0, -size/2
+            );
+            
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(-size/6, -size/4, size/8, size/10, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        function createBranch(startX, startY, depth) {
+            if (depth > 7) return;
+            
+            const branchCount = depth < 2 ? 3 : (depth < 4 ? 2 : 1);
+            
+            for (let i = 0; i < branchCount; i++) {
+                const angle = -Math.PI/2 + (-0.6 + Math.random() * 1.2) * (Math.PI/3);
+                const length = 60 + (150 - depth * 20) * Math.random();
+                
+                const endX = startX + Math.cos(angle) * length;
+                const endY = startY + Math.sin(angle) * length;
+                
+                const branch = new Branch(
+                    startX, 
+                    startY, 
+                    endX, 
+                    endY, 
+                    15 - depth * 1.5, 
+                    depth
+                );
+                
+                branches.push(branch);
+                
+                createBranch(endX, endY, depth + 1);
+            }
+        }
+        
+        function createTree() {
+            branches = [];
+            hearts = [];
+            createBranch(treeBaseX, treeBaseY, 0);
+        }
+        
+        function animate(timestamp) {
+            if (!animationStartTime) animationStartTime = timestamp;
+            const elapsed = timestamp - animationStartTime;
+            const progress = Math.min(elapsed / config.growthDuration, 1);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < branches.length; i++) {
+                const branch = branches[i];
+                branch.grow(progress);
+                branch.draw();
+            }
+            
+            for (let i = hearts.length - 1; i >= 0; i--) {
+                if (hearts[i].update()) {
+                    hearts[i].draw();
+                } else {
+                    hearts.splice(i, 1);
+                }
+            }
+            
+            if (progress >= 1 && !animationCompleted) {
+                animationCompleted = true;
+                nameDisplay.textContent = config.personName + " ♥";
+                setTimeout(() => {
+                    nameDisplay.style.opacity = 1;
+                    nameDisplay.style.animation = "pulse 2s infinite";
+                    
+                    for (let i = 0; i < 30; i++) {
+                        const x = treeBaseX + (Math.random() - 0.5) * 300;
+                        const y = canvas.height * 0.5 + (Math.random() - 0.5) * 200;
+                        hearts.push(new HeartParticle(x, y, 20));
+                    }
+                }, 300);
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            treeBaseX = canvas.width / 2;
+            treeBaseY = canvas.height;
+            createTree();
+            requestAnimationFrame(animate);
+            
+            for (let i = 0; i < 15; i++) {
+                const x = Math.random() * canvas.width;
+                const y = canvas.height * 0.8 + Math.random() * canvas.height * 0.2;
+                hearts.push(new HeartParticle(x, y, 15));
+            }
+            
+            createClouds();
+        });
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            treeBaseX = canvas.width / 2;
+            treeBaseY = canvas.height;
+            createTree();
+        });
+        
+        function createClouds() {
+            const cloudContainer = document.querySelector('.container');
+            for (let i = 0; i < 8; i++) {
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                cloud.style.left = Math.random() * 90 + 5 + '%';
+                cloud.style.top = Math.random() * 70 + 5 + '%';
+                cloud.style.width = (60 + Math.random() * 100) + 'px';
+                cloud.style.height = (30 + Math.random() * 50) + 'px';
+                cloud.style.opacity = 0.7 + Math.random() * 0.3;
+                cloud.style.animation = `float ${15 + Math.random() * 20}s linear infinite`;
+                cloud.style.animationDelay = `${Math.random() * 5}s`;
+                cloudContainer.appendChild(cloud);
+            }
+            
+            // 添加云朵浮动动画
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes float {
+                    0% { transform: translateX(-10px); }
+                    50% { transform: translateX(10px); }
+                    100% { transform: translateX(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    </script>
+</body>
+</html>
